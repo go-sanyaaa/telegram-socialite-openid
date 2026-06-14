@@ -2,6 +2,7 @@
 
 namespace SocialiteProviders\TelegramOpenId;
 
+use GuzzleHttp\RequestOptions;
 use Illuminate\Support\Arr;
 use Laravel\Socialite\Two\InvalidStateException;
 use SocialiteProviders\Manager\OAuth2\AbstractProvider;
@@ -32,7 +33,16 @@ class Provider extends AbstractProvider
     protected static array $additionalConfigKeys = [
         'issuer',
         'jwks_uri',
+        'proxy',
     ];
+
+    /**
+     * @return array<int, string>
+     */
+    public static function additionalConfigKeys()
+    {
+        return static::$additionalConfigKeys;
+    }
 
     protected function getAuthUrl($state): string
     {
@@ -42,6 +52,22 @@ class Provider extends AbstractProvider
     protected function getTokenUrl(): string
     {
         return self::TOKEN_URL;
+    }
+
+    public function getAccessTokenResponse($code)
+    {
+        $options = [
+            RequestOptions::HEADERS => $this->getTokenHeaders($code),
+            RequestOptions::FORM_PARAMS => $this->getTokenFields($code),
+        ];
+
+        if ($proxy = $this->getConfig('proxy')) {
+            $options[RequestOptions::PROXY] = $proxy;
+        }
+
+        $response = $this->getHttpClient()->post($this->getTokenUrl(), $options);
+
+        return json_decode($response->getBody(), true);
     }
 
     /**
@@ -140,6 +166,7 @@ class Provider extends AbstractProvider
             (string) $this->clientId,
             $this->getConfig('issuer', TelegramIdTokenVerifier::DEFAULT_ISSUER),
             $this->getConfig('jwks_uri', TelegramIdTokenVerifier::DEFAULT_JWKS_URI),
+            $this->getConfig('proxy'),
         );
     }
 }

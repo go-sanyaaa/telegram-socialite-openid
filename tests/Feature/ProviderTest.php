@@ -26,6 +26,10 @@ it('registers the telegram socialite driver through the manager event', function
     (new TelegramOpenIdExtendSocialite)->handle($event);
 });
 
+it('allows Telegram proxy config through the manager', function () {
+    expect(Provider::additionalConfigKeys())->toContain('issuer', 'jwks_uri', 'proxy');
+});
+
 it('redirects to Telegram with state, openid scope, and PKCE', function () {
     $request = makeRequest('/redirect');
     $provider = makeProvider($request);
@@ -58,7 +62,7 @@ it('can expand Telegram scopes explicitly', function () {
     expect(explode(' ', $query['scope']))->toBe(['openid', 'profile', 'phone', 'telegram:bot_access']);
 });
 
-it('exchanges authorization codes with basic auth and the PKCE verifier', function () {
+it('exchanges authorization codes with basic auth, proxy, and the PKCE verifier', function () {
     $history = [];
     $mock = new MockHandler([
         new Response(200, ['Content-Type' => 'application/json'], json_encode(['access_token' => 'access-token'])),
@@ -69,7 +73,9 @@ it('exchanges authorization codes with basic auth and the PKCE verifier', functi
     $request = makeRequest('/callback', [
         'code' => 'authorization-code',
     ]);
-    $provider = makeProvider(request: $request);
+    $provider = makeProvider(request: $request, configOverrides: [
+        'proxy' => 'http://proxy.example.test:8080',
+    ]);
     $request->session()->put('code_verifier', 'stored-code-verifier');
     $provider->setHttpClient(new Client(['handler' => $stack]));
 
@@ -87,7 +93,8 @@ it('exchanges authorization codes with basic auth and the PKCE verifier', functi
             'redirect_uri' => 'https://example.com/auth/telegram/callback',
             'code_verifier' => 'stored-code-verifier',
         ])
-        ->and($form)->not->toHaveKey('client_secret');
+        ->and($form)->not->toHaveKey('client_secret')
+        ->and($history[0]['options']['proxy'])->toBe('http://proxy.example.test:8080');
 });
 
 it('maps verified Telegram ID token claims to a Socialite user', function () {

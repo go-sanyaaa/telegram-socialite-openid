@@ -20,15 +20,20 @@ class TelegramIdTokenVerifier
     /**
      * @return array<string, mixed>
      */
-    public function verify(string $idToken, string $clientId, ?string $issuer = null, ?string $jwksUri = null): array
-    {
+    public function verify(
+        string $idToken,
+        string $clientId,
+        ?string $issuer = null,
+        ?string $jwksUri = null,
+        string|array|null $proxy = null,
+    ): array {
         $issuer = $issuer ?: self::DEFAULT_ISSUER;
         $jwksUri = $jwksUri ?: self::DEFAULT_JWKS_URI;
 
         $this->ensureSecureJwksUri($jwksUri);
 
         try {
-            $decoded = JWT::decode($idToken, JWK::parseKeySet($this->getJwks($jwksUri)));
+            $decoded = JWT::decode($idToken, JWK::parseKeySet($this->getJwks($jwksUri, $proxy)));
         } catch (Throwable $exception) {
             throw new InvalidTelegramIdToken('The Telegram ID token signature could not be verified.', 0, $exception);
         }
@@ -47,10 +52,16 @@ class TelegramIdTokenVerifier
     /**
      * @return array<string, mixed>
      */
-    protected function getJwks(string $jwksUri): array
+    protected function getJwks(string $jwksUri, string|array|null $proxy = null): array
     {
-        $jwks = Cache::remember($this->cacheKey($jwksUri), now()->addHour(), function () use ($jwksUri): array {
-            $payload = Http::acceptJson()->get($jwksUri)->throw()->json();
+        $jwks = Cache::remember($this->cacheKey($jwksUri), now()->addHour(), function () use ($jwksUri, $proxy): array {
+            $request = Http::acceptJson();
+
+            if ($proxy) {
+                $request = $request->withOptions(['proxy' => $proxy]);
+            }
+
+            $payload = $request->get($jwksUri)->throw()->json();
 
             if (! is_array($payload)) {
                 throw new InvalidTelegramIdToken('The Telegram JWKS endpoint returned an invalid payload.');

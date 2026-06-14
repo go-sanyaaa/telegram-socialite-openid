@@ -52,6 +52,7 @@ Add a `telegram` entry to `config/services.php`:
     'redirect' => env('TELEGRAM_REDIRECT_URI'),
     'issuer' => env('TELEGRAM_ISSUER', 'https://oauth.telegram.org'),
     'jwks_uri' => env('TELEGRAM_JWKS_URI', 'https://oauth.telegram.org/.well-known/jwks.json'),
+    'proxy' => env('TELEGRAM_PROXY'),
 ],
 ```
 
@@ -61,6 +62,7 @@ Then set the matching environment variables:
 TELEGRAM_CLIENT_ID=123456789
 TELEGRAM_CLIENT_SECRET=your-client-secret
 TELEGRAM_REDIRECT_URI=https://example.com/auth/telegram/callback
+TELEGRAM_PROXY=http://127.0.0.1:8080
 ```
 
 Create a Telegram bot and register your Allowed URLs in BotFather under
@@ -100,6 +102,22 @@ return Socialite::driver('telegram')
 
 Telegram returns user claims in the ID token and currently does not provide a
 separate UserInfo endpoint. For that reason, `userFromToken()` is unsupported.
+
+## Proxy
+
+If your server must reach Telegram through an HTTP proxy, set `proxy` in the
+`telegram` service config. The proxy is used for server-side requests to the
+Telegram token endpoint and JWKS endpoint:
+
+```php
+'telegram' => [
+    // ...
+    'proxy' => env('TELEGRAM_PROXY'),
+],
+```
+
+The browser redirect to `oauth.telegram.org/auth` is performed by the user's
+browser and is not proxied by this PHP package.
 
 ## Returned User
 
