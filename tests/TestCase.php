@@ -16,6 +16,8 @@ abstract class TestCase extends Orchestra
             'issuer' => 'https://oauth.telegram.org',
             'jwks_uri' => 'https://oauth.telegram.org/.well-known/jwks.json',
             'proxy' => null,
+            'timeout' => 5,
+            'connect_timeout' => 3,
         ]);
     }
 }

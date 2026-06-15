@@ -4,8 +4,8 @@ namespace SocialiteProviders\TelegramOpenId;
 
 use Firebase\JWT\JWK;
 use Firebase\JWT\JWT;
+use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use SocialiteProviders\TelegramOpenId\Exceptions\InvalidTelegramIdToken;
 use Throwable;
 
@@ -17,6 +17,13 @@ class TelegramIdTokenVerifier
 
     public const CACHE_KEY_PREFIX = 'socialiteproviders.telegram-openid.jwks.';
 
+    protected HttpFactory $http;
+
+    public function __construct(?HttpFactory $http = null)
+    {
+        $this->http = $http ?: app(HttpFactory::class);
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -26,6 +33,8 @@ class TelegramIdTokenVerifier
         ?string $issuer = null,
         ?string $jwksUri = null,
         string|array|null $proxy = null,
+        float|int $timeout = 5,
+        float|int $connectTimeout = 3,
     ): array {
         $issuer = $issuer ?: self::DEFAULT_ISSUER;
         $jwksUri = $jwksUri ?: self::DEFAULT_JWKS_URI;
@@ -33,7 +42,7 @@ class TelegramIdTokenVerifier
         $this->ensureSecureJwksUri($jwksUri);
 
         try {
-            $decoded = JWT::decode($idToken, JWK::parseKeySet($this->getJwks($jwksUri, $proxy)));
+            $decoded = JWT::decode($idToken, JWK::parseKeySet($this->getJwks($jwksUri, $proxy, $timeout, $connectTimeout)));
         } catch (Throwable $exception) {
             throw new InvalidTelegramIdToken('The Telegram ID token signature could not be verified.', 0, $exception);
         }
@@ -52,13 +61,20 @@ class TelegramIdTokenVerifier
     /**
      * @return array<string, mixed>
      */
-    protected function getJwks(string $jwksUri, string|array|null $proxy = null): array
-    {
-        $jwks = Cache::remember($this->cacheKey($jwksUri), now()->addHour(), function () use ($jwksUri, $proxy): array {
-            $request = Http::acceptJson();
+    protected function getJwks(
+        string $jwksUri,
+        string|array|null $proxy = null,
+        float|int $timeout = 5,
+        float|int $connectTimeout = 3,
+    ): array {
+        $jwks = Cache::remember($this->cacheKey($jwksUri), now()->addHour(), function () use ($jwksUri, $proxy, $timeout, $connectTimeout): array {
+            $request = $this->http
+                ->timeout($timeout)
+                ->connectTimeout($connectTimeout)
+                ->acceptJson();
 
             if ($proxy) {
-                $request = $request->withOptions(['proxy' => $proxy]);
+                $request->withOptions(['proxy' => $proxy]);
             }
 
             $payload = $request->get($jwksUri)->throw()->json();

@@ -53,6 +53,8 @@ Add a `telegram` entry to `config/services.php`:
     'issuer' => env('TELEGRAM_ISSUER', 'https://oauth.telegram.org'),
     'jwks_uri' => env('TELEGRAM_JWKS_URI', 'https://oauth.telegram.org/.well-known/jwks.json'),
     'proxy' => env('TELEGRAM_PROXY'),
+    'timeout' => env('TELEGRAM_TIMEOUT', 5),
+    'connect_timeout' => env('TELEGRAM_CONNECT_TIMEOUT', 3),
 ],
 ```
 
@@ -63,6 +65,8 @@ TELEGRAM_CLIENT_ID=123456789
 TELEGRAM_CLIENT_SECRET=your-client-secret
 TELEGRAM_REDIRECT_URI=https://example.com/auth/telegram/callback
 TELEGRAM_PROXY=http://127.0.0.1:8080
+TELEGRAM_TIMEOUT=5
+TELEGRAM_CONNECT_TIMEOUT=3
 ```
 
 Create a Telegram bot and register your Allowed URLs in BotFather under
@@ -113,8 +117,13 @@ Telegram token endpoint and JWKS endpoint:
 'telegram' => [
     // ...
     'proxy' => env('TELEGRAM_PROXY'),
+    'timeout' => env('TELEGRAM_TIMEOUT', 5),
+    'connect_timeout' => env('TELEGRAM_CONNECT_TIMEOUT', 3),
 ],
 ```
+
+The default server-side HTTP timeout is 5 seconds and the default connect
+timeout is 3 seconds.
 
 The browser redirect to `oauth.telegram.org/auth` is performed by the user's
 browser and is not proxied by this PHP package.

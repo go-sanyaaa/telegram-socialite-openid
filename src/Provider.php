@@ -34,6 +34,8 @@ class Provider extends AbstractProvider
         'issuer',
         'jwks_uri',
         'proxy',
+        'timeout',
+        'connect_timeout',
     ];
 
     /**
@@ -64,6 +66,9 @@ class Provider extends AbstractProvider
         if ($proxy = $this->getConfig('proxy')) {
             $options[RequestOptions::PROXY] = $proxy;
         }
+
+        $options[RequestOptions::TIMEOUT] = (float) $this->getConfig('timeout', 5);
+        $options[RequestOptions::CONNECT_TIMEOUT] = (float) $this->getConfig('connect_timeout', 3);
 
         $response = $this->getHttpClient()->post($this->getTokenUrl(), $options);
 
@@ -167,6 +172,8 @@ class Provider extends AbstractProvider
             $this->getConfig('issuer', TelegramIdTokenVerifier::DEFAULT_ISSUER),
             $this->getConfig('jwks_uri', TelegramIdTokenVerifier::DEFAULT_JWKS_URI),
             $this->getConfig('proxy'),
+            (float) $this->getConfig('timeout', 5),
+            (float) $this->getConfig('connect_timeout', 3),
         );
     }
 }

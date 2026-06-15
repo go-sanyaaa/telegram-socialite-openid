@@ -27,7 +27,7 @@ it('registers the telegram socialite driver through the manager event', function
 });
 
 it('allows Telegram proxy config through the manager', function () {
-    expect(Provider::additionalConfigKeys())->toContain('issuer', 'jwks_uri', 'proxy');
+    expect(Provider::additionalConfigKeys())->toContain('issuer', 'jwks_uri', 'proxy', 'timeout', 'connect_timeout');
 });
 
 it('redirects to Telegram with state, openid scope, and PKCE', function () {
@@ -75,6 +75,8 @@ it('exchanges authorization codes with basic auth, proxy, and the PKCE verifier'
     ]);
     $provider = makeProvider(request: $request, configOverrides: [
         'proxy' => 'http://proxy.example.test:8080',
+        'timeout' => 9,
+        'connect_timeout' => 4,
     ]);
     $request->session()->put('code_verifier', 'stored-code-verifier');
     $provider->setHttpClient(new Client(['handler' => $stack]));
@@ -94,7 +96,9 @@ it('exchanges authorization codes with basic auth, proxy, and the PKCE verifier'
             'code_verifier' => 'stored-code-verifier',
         ])
         ->and($form)->not->toHaveKey('client_secret')
-        ->and($history[0]['options']['proxy'])->toBe('http://proxy.example.test:8080');
+        ->and($history[0]['options']['proxy'])->toBe('http://proxy.example.test:8080')
+        ->and($history[0]['options']['timeout'])->toBe(9.0)
+        ->and($history[0]['options']['connect_timeout'])->toBe(4.0);
 });
 
 it('maps verified Telegram ID token claims to a Socialite user', function () {
